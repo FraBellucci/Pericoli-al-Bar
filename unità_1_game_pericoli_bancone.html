@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trova i Pericoli al Bancone</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 800px;
+            height: 550px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 16px 24px 12px 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+        h1 {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 2px;
+            line-height: 1.2em;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #7f8c8d;
+            line-height: 1.2em;
+        }
+
+        .counter-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #34495e;
+            line-height: 1.2em;
+        }
+
+        .counter-bar span {
+            background: #f0f3ff;
+            border: 1px solid #667eea;
+            border-radius: 12px;
+            padding: 2px 12px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        /* Area immagine con hotspot */
+        .image-wrapper {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            background: #f5f5f5;
+        }
+
+        .image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Hotspot invisibile cliccabile */
+        .hotspot {
+            position: absolute;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .hotspot:hover {
+            background: rgba(231, 76, 60, 0.15);
+            border-color: rgba(231, 76, 60, 0.5);
+        }
+
+        .hotspot.found {
+            background: rgba(231, 76, 60, 0.25);
+            border-color: #e74c3c;
+            animation: pulse 1s ease-out;
+            cursor: default;
+        }
+
+        .hotspot.found::after {
+            content: '⚠️';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+        }
+
+        @keyframes pulse {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        /* Tooltip feedback */
+        .tooltip {
+            display: none;
+            position: absolute;
+            background: #2c3e50;
+            color: white;
+            font-size: 12px;
+            line-height: 1.2em;
+            padding: 8px 12px;
+            border-radius: 6px;
+            max-width: 200px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .tooltip.show { display: block; }
+
+        /* Feedback zona sicura */
+        .safe-feedback {
+            display: none;
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #27ae60;
+            color: white;
+            font-size: 12px;
+            line-height: 1.2em;
+            padding: 5px 16px;
+            border-radius: 12px;
+            z-index: 200;
+            white-space: nowrap;
+        }
+
+        /* Pannello risultati */
+        .results {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            text-align: center;
+            gap: 10px;
+        }
+
+        .results.show { display: flex; }
+
+        .score-big {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            line-height: 1.2em;
+        }
+
+        .results-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            line-height: 1.2em;
+        }
+
+        .results-msg {
+            font-size: 12px;
+            color: #34495e;
+            line-height: 1.2em;
+            max-width: 500px;
+        }
+
+        .recap {
+            font-size: 12px;
+            color: #555;
+            line-height: 1.4em;
+            max-width: 560px;
+            background: #f8f9fa;
+            border-left: 4px solid #e74c3c;
+            padding: 10px 14px;
+            border-radius: 4px;
+            text-align: left;
+        }
+
+        .btn {
+            padding: 9px 28px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            line-height: 1.2em;
+        }
+
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+
+        /* Schermata introduttiva */
+        #intro-screen {
+            position: absolute;
+            inset: 0;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 32px 40px;
+            text-align: center;
+            z-index: 999;
+        }
+
+        .intro-icon { font-size: 48px; line-height: 1; }
+
+        .intro-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            line-height: 1.3em;
+        }
+
+        .intro-desc {
+            font-size: 13px;
+            color: #34495e;
+            line-height: 1.6em;
+            max-width: 560px;
+        }
+
+        .intro-rules {
+            background: #f0f3ff;
+            border-left: 4px solid #667eea;
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-size: 12px;
+            color: #34495e;
+            line-height: 1.7em;
+            text-align: left;
+            max-width: 560px;
+            width: 100%;
+        }
+
+        .btn-start {
+            margin-top: 6px;
+            padding: 11px 36px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+            transition: background 0.2s;
+        }
+
+        .btn-start:hover { background: #5568d3; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Schermata introduttiva -->
+    <div id="intro-screen">
+        <div class="intro-icon">🔍</div>
+        <div class="intro-title">Trova i Pericoli al Bancone</div>
+        <div class="intro-desc">
+            Al bancone di un bar i pericoli non sono sempre ovvi: a volte si nascondono in piccoli dettagli che diventano rischi reali durante una giornata di lavoro frenetica.
+        </div>
+        <div class="intro-rules">
+            <strong>Come funziona:</strong><br>
+            📍 Osserva l'immagine del bancone<br>
+            🖱️ Clicca sulle zone che ritieni pericolose<br>
+            ⚠️ Per ogni pericolo trovato riceverai una spiegazione<br>
+            🎯 Obiettivo: individuare tutti e 8 i pericoli nascosti
+        </div>
+        <button class="btn-start" onclick="startGame()">Inizia l'esercizio →</button>
+    </div>
+
+    <div class="header">
+        <h1>🔍 Trova i Pericoli al Bancone</h1>
+        <div class="subtitle">Clicca sulle situazioni pericolose che riesci a individuare nell'immagine</div>
+    </div>
+
+    <div class="counter-bar">
+        Pericoli trovati: <span id="counter">0 / 8</span>
+    </div>
+
+    <!-- Zona gioco -->
+    <div id="game-area">
+        <div class="image-wrapper" id="image-wrapper" onclick="handleImageClick(event)">
+            <img src="images/bancone.png" alt="Bancone bar" id="bancone-img" onload="placeHotspots()">
+
+            <!-- Hotspot (posizionati dopo il load dell'immagine) -->
+            <div class="hotspot" id="h1" data-id="0" onclick="foundHazard(event, 0)"></div>
+            <div class="hotspot" id="h2" data-id="1" onclick="foundHazard(event, 1)"></div>
+            <div class="hotspot" id="h3" data-id="2" onclick="foundHazard(event, 2)"></div>
+            <div class="hotspot" id="h4" data-id="3" onclick="foundHazard(event, 3)"></div>
+            <div class="hotspot" id="h5" data-id="4" onclick="foundHazard(event, 4)"></div>
+            <div class="hotspot" id="h6" data-id="5" onclick="foundHazard(event, 5)"></div>
+            <div class="hotspot" id="h7" data-id="6" onclick="foundHazard(event, 6)"></div>
+            <div class="hotspot" id="h8" data-id="7" onclick="foundHazard(event, 7)"></div>
+
+            <div class="tooltip" id="tooltip"></div>
+            <div class="safe-feedback" id="safe-feedback">✓ Questa zona è sicura!</div>
+        </div>
+    </div>
+
+    <!-- Risultati -->
+    <div class="results" id="results">
+        <div class="results-title">🎉 Tutti i pericoli trovati!</div>
+        <div class="score-big" id="final-score"></div>
+        <div class="results-msg" id="results-msg"></div>
+        <div class="recap" id="recap"></div>
+        <button class="btn btn-primary" onclick="location.reload()">Riprova</button>
+    </div>
+
+</div>
+
+<script>
+    // Avvio gioco dopo la schermata intro
+    function startGame() {
+        document.getElementById('intro-screen').style.display = 'none';
+    }
+
+    // Dati pericoli: percentuale rispetto all'immagine 1980x1080
+    // x%, y% = centro hotspot; w%, h% = dimensione area cliccabile
+    const hazards = [
+        {
+            id: 0,
+            label: "Lancia vapore sporca",
+            x: 12, y: 35, w: 8, h: 10,
+            feedback: "⚠️ Lancia vapore con residui di latte: rischio ustioni e contaminazione batterica. Pulire dopo ogni uso."
+        },
+        {
+            id: 1,
+            label: "Cavo elettrico danneggiato",
+            x: 28, y: 72, w: 9, h: 8,
+            feedback: "⚠️ Cavo elettrico danneggiato sotto il bancone: rischio folgorazione e incendio. Segnalare subito al responsabile."
+        },
+        {
+            id: 2,
+            label: "Coltello sul bordo",
+            x: 44, y: 55, w: 8, h: 8,
+            feedback: "⚠️ Coltello lasciato sul bordo del bancone: rischio tagli gravi. Riporlo sempre nell'apposito supporto."
+        },
+        {
+            id: 3,
+            label: "Tostiera con briciole",
+            x: 58, y: 40, w: 9, h: 9,
+            feedback: "⚠️ Tostiera con briciole accumulate: rischio incendio. Svuotare il raccoglitore briciole ogni giorno."
+        },
+        {
+            id: 4,
+            label: "Frullatore con lame esposte",
+            x: 70, y: 38, w: 8, h: 10,
+            feedback: "⚠️ Frullatore con bicchiere smontato e lame esposte: rischio tagli gravissimi. Rimontare sempre prima di usare."
+        },
+        {
+            id: 5,
+            label: "Lavastoviglie aperta con vapore",
+            x: 82, y: 60, w: 9, h: 10,
+            feedback: "⚠️ Lavastoviglie aperta con vapore: rischio ustioni al viso e alle mani. Aspettare lo sfogo vapore prima di aprire."
+        },
+        {
+            id: 6,
+            label: "Teglia calda senza guanti",
+            x: 38, y: 75, w: 9, h: 8,
+            feedback: "⚠️ Teglia calda appoggiata senza guanti nelle vicinanze: rischio ustioni. Usare sempre guanti termici per teglie calde."
+        },
+        {
+            id: 7,
+            label: "Presa multipla sovraccarica",
+            x: 20, y: 80, w: 8, h: 8,
+            feedback: "⚠️ Presa multipla sovraccarica con troppe spine: rischio cortocircuito e incendio. Non superare la portata massima della presa."
+        }
+    ];
+
+    let found = [];
+    let tooltipTimer = null;
+    let safeFeedbackTimer = null;
+
+    function placeHotspots() {
+        const wrapper = document.getElementById('image-wrapper');
+        const W = wrapper.offsetWidth;
+        const H = wrapper.offsetHeight;
+
+        hazards.forEach((h, i) => {
+            const el = document.getElementById('h' + (i + 1));
+            const pw = (h.w / 100) * W;
+            const ph = (h.h / 100) * H;
+            el.style.width  = pw + 'px';
+            el.style.height = ph + 'px';
+            el.style.left   = ((h.x / 100) * W - pw / 2) + 'px';
+            el.style.top    = ((h.y / 100) * H - ph / 2) + 'px';
+        });
+    }
+
+    function foundHazard(event, id) {
+        event.stopPropagation();
+        if (found.includes(id)) return;
+
+        found.push(id);
+        const el = document.getElementById('h' + (id + 1));
+        el.classList.add('found');
+
+        // Mostra tooltip
+        showTooltip(event, hazards[id].feedback);
+
+        // Aggiorna contatore
+        document.getElementById('counter').textContent = found.length + ' / 8';
+
+        if (found.length === hazards.length) {
+            setTimeout(showResults, 1200);
+        }
+    }
+
+    function showTooltip(event, text) {
+        const tooltip = document.getElementById('tooltip');
+        const wrapper = document.getElementById('image-wrapper');
+        const rect = wrapper.getBoundingClientRect();
+
+        let x = event.clientX - rect.left + 12;
+        let y = event.clientY - rect.top + 12;
+
+        // Evita che esca a destra
+        if (x + 210 > wrapper.offsetWidth) x = event.clientX - rect.left - 220;
+        // Evita che esca in basso
+        if (y + 80 > wrapper.offsetHeight) y = event.clientY - rect.top - 90;
+
+        tooltip.style.left = x + 'px';
+        tooltip.style.top  = y + 'px';
+        tooltip.textContent = text;
+        tooltip.classList.add('show');
+
+        clearTimeout(tooltipTimer);
+        tooltipTimer = setTimeout(() => tooltip.classList.remove('show'), 3000);
+    }
+
+    function handleImageClick(event) {
+        // Click su zona sicura (non su hotspot)
+        if (event.target !== document.getElementById('bancone-img') &&
+            event.target !== document.getElementById('image-wrapper')) return;
+
+        const safeFb = document.getElementById('safe-feedback');
+        safeFb.style.display = 'block';
+        clearTimeout(safeFeedbackTimer);
+        safeFeedbackTimer = setTimeout(() => safeFb.style.display = 'none', 1500);
+    }
+
+    function showResults() {
+        document.getElementById('game-area').style.display = 'none';
+        document.getElementById('counter-bar') && null;
+
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.classList.add('show');
+
+        const pct = Math.round((found.length / hazards.length) * 100);
+        document.getElementById('final-score').textContent = found.length + '/8';
+
+        let msg = '';
+        if (found.length === 8) {
+            msg = '🎉 Perfetto! Hai individuato tutti i pericoli. Occhio attento = bancone sicuro!';
+        } else if (found.length >= 6) {
+            msg = '👏 Molto bene! Ne hai trovati quasi tutti. Riprova per trovare quelli mancanti.';
+        } else {
+            msg = '📚 Buon inizio! Allena l\'occhio: nel bancone reale i pericoli vanno individuati subito.';
+        }
+        document.getElementById('results-msg').textContent = msg;
+
+        // Riepilogo tutti i pericoli
+        const recap = hazards.map(h =>
+            (found.includes(h.id) ? '✅' : '❌') + ' ' + h.label
+        ).join('\n');
+        document.getElementById('recap').textContent = recap;
+    }
+
+    // Riposiziona hotspot se la finestra cambia dimensione
+    window.addEventListener('resize', placeHotspots);
+
+    // Se l'immagine è già in cache potrebbe non scattare onload
+    window.addEventListener('load', placeHotspots);
+</script>
+</body>
+</html>
